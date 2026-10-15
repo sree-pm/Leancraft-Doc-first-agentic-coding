@@ -39,3 +39,18 @@ test("npm verification command runs cross-platform as program rather than shell 
   const evidence=JSON.parse(fs.readFileSync(path.join(root, ".leancraft/joint/verification.json"),"utf8"));
   assert.equal(evidence.results[0].passed, true);
 });
+
+test("verification evidence and CI logs do not expose raw command arguments", t => {
+  const root=tmp(t);
+  assert.equal(run(root, ["init"]).status, 0);
+  const cfgFile=path.join(root,".leancraft/config.json");
+  const cfg=JSON.parse(fs.readFileSync(cfgFile,"utf8"));
+  cfg.quality.commands=[[process.execPath,"-e","console.log('PRIVATE_ARGUMENT_TEST_6bd6ea7')"]];
+  fs.writeFileSync(cfgFile, JSON.stringify(cfg));
+  const command=run(root,["verify"]);
+  assert.equal(command.status,0,command.stdout+command.stderr);
+  assert.doesNotMatch(command.stdout,/PRIVATE_ARGUMENT_TEST_6bd6ea7/);
+  const evidence=fs.readFileSync(path.join(root,".leancraft/joint/verification.json"),"utf8");
+  assert.doesNotMatch(evidence,/PRIVATE_ARGUMENT_TEST_6bd6ea7/);
+  assert.match(evidence,/"commandDigest"/);
+});

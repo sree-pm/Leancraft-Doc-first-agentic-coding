@@ -38,7 +38,9 @@ for (const args of commands) {
       realArgs = [cli, ...(executable === "npx" ? ["exec", "--"] : []), ...argv];
     }
   }
-  console.log("RUN " + JSON.stringify(args));
+  const commandDigest = createHash("sha256").update(JSON.stringify(args)).digest("hex");
+  const commandLabel = path.basename(executable);
+  console.log("RUN " + commandLabel + " (" + argv.length + " argument(s), SHA256 " + commandDigest.slice(0,12) + ")");
   const started = Date.now();
   // node:test sets NODE_TEST_CONTEXT in its worker process. If inherited, a nested
   // 'node --test' invocation can silently SKIP tests with exit code 0.
@@ -48,13 +50,13 @@ for (const args of commands) {
   const run = spawnSync(binary, realArgs, { cwd, env: childEnv, shell: false, encoding: "utf8", timeout: maxMs, maxBuffer: 1024 * 1024 });
   const status = run.status === null ? 1 : run.status;
   const entry = {
-    argv: args, exitCode: status, durationMs: Date.now() - started,
+    executable: commandLabel, argumentCount: argv.length, commandDigest, exitCode: status, durationMs: Date.now() - started,
     passed: !run.error && status === 0,
     error: run.error ? run.error.code || run.error.message : null,
     outputDigest: createHash("sha256").update((run.stdout || "") + (run.stderr || "")).digest("hex")
   };
   results.push(entry);
-  console.log((entry.passed ? "PASS " : "FAIL ") + JSON.stringify(args) + " (exit " + status + ")");
+  console.log((entry.passed ? "PASS " : "FAIL ") + commandLabel + " (exit " + status + ")");
 }
 const output = {
   schemaVersion: 1, recordedAt: new Date().toISOString(), commit: gitSha, cleanTrackedTree: gitClean,
@@ -65,5 +67,5 @@ const file = path.join(root, "joint/verification.json");
 fs.mkdirSync(path.dirname(file), { recursive: true });
 fs.writeFileSync(file, JSON.stringify(output, null, 2) + "\n");
 console.log("Stored actual exit codes and SHA-256 output digests in .leancraft/joint/verification.json");
-console.log("No raw console output, environment variables or secrets were stored in the report.");
+console.log("Report stores command and output digests, not raw output or argument values.");
 if (!output.passed) process.exitCode = 1;
