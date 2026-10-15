@@ -17,52 +17,7 @@ function run(script, extra = args.slice(1)) {
     process.exit(error.status || 1);
   }
 }
-function copyMissing(src, dest, refresh = false) {
-  if (!fs.existsSync(src)) return;
-  if (fs.statSync(src).isDirectory()) {
-    fs.mkdirSync(dest, { recursive: true });
-    for (const name of fs.readdirSync(src)) copyMissing(path.join(src, name), path.join(dest, name), refresh);
-  } else if (!fs.existsSync(dest) || refresh) {
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(src, dest);
-  }
-}
-function init() {
-  const refresh = args.includes("--force");
-  const root = path.join(cwd, ".leancraft");
-  const fresh = !fs.existsSync(root);
-  const source = path.join(pkgRoot, ".leancraft");
-  if (fs.existsSync(root)) {
-    for (const entry of fs.readdirSync(source)) {
-      // Never overwrite human decisions, research, agent progress or joint audit trails.
-      copyMissing(path.join(source, entry), path.join(root, entry), refresh && entry === "templates");
-    }
-  } else {
-    copyMissing(source, root);
-  }
-  if (fresh) {
-    // An installed project must not inherit example repository history or stale agent context.
-    fs.writeFileSync(path.join(root, "joint/ledger.jsonl"), "");
-    fs.writeFileSync(path.join(root, "joint/decisions.log.md"), "# Decisions\n\nRecord approved decisions with sources.\n");
-    fs.writeFileSync(path.join(root, "agent/progress.md"), "# Agent Progress\n\nNo implementation has been verified yet.\n");
-  }
-  const runtime = path.join(root, "runtime");
-  fs.mkdirSync(runtime, { recursive: true });
-  for (const name of fs.readdirSync(path.join(pkgRoot, "scripts"))) {
-    if (name.endsWith(".mjs")) copyMissing(path.join(pkgRoot, "scripts", name), path.join(runtime, name), refresh);
-  }
-  fs.writeFileSync(path.join(runtime, "VERSION"), pkg.version + "\n");
-  for (const file of [
-    "AGENTS.md", "CLAUDE.md", ".mcp.json", ".claude/skills/leancraft/SKILL.md",
-    ".opencode/skills/leancraft/SKILL.md", ".cursor/rules/leancraft.mdc"
-  ]) copyMissing(path.join(pkgRoot, file), path.join(cwd, file), refresh && file !== ".github/CODEOWNERS" && file !== "AGENTS.md" && file !== "CLAUDE.md" && file !== ".mcp.json");
-  run("install-hooks.mjs", []);
-  if (fresh) run("leancraft-sync.mjs", []);
-  console.log("Set CODEOWNERS and branch rules explicitly for YOUR repository owner. LeanCraft will not inject its own maintainer.");
-  console.log("Config quality.commands with your real test runner before using the release gate.");
-  console.log("LeanCraft scaffold ready. Fill human docs, run 'npx leancraft validate', then 'npx leancraft lock'.");
-  console.log("Existing human docs were preserved. The lock is a workflow safeguard, not an OS sandbox.");
-}
+function init() { run("leancraft-init.mjs", args.slice(1)); }
 function help() {
   console.log("LeanCraft " + pkg.version + "\n" +
     "  npx leancraft init [--force]    Scaffold or refresh managed runtime without replacing human docs\n" +
