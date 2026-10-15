@@ -30,6 +30,7 @@ function copyMissing(src, dest, refresh = false) {
 function init() {
   const refresh = args.includes("--force");
   const root = path.join(cwd, ".leancraft");
+  const fresh = !fs.existsSync(root);
   const source = path.join(pkgRoot, ".leancraft");
   if (fs.existsSync(root)) {
     for (const entry of fs.readdirSync(source)) {
@@ -39,6 +40,12 @@ function init() {
   } else {
     copyMissing(source, root);
   }
+  if (fresh) {
+    // An installed project must not inherit example repository history or stale agent context.
+    fs.writeFileSync(path.join(root, "joint/ledger.jsonl"), "");
+    fs.writeFileSync(path.join(root, "joint/decisions.log.md"), "# Decisions\n\nRecord approved decisions with sources.\n");
+    fs.writeFileSync(path.join(root, "agent/progress.md"), "# Agent Progress\n\nNo implementation has been verified yet.\n");
+  }
   const runtime = path.join(root, "runtime");
   fs.mkdirSync(runtime, { recursive: true });
   for (const name of fs.readdirSync(path.join(pkgRoot, "scripts"))) {
@@ -47,9 +54,11 @@ function init() {
   fs.writeFileSync(path.join(runtime, "VERSION"), pkg.version + "\n");
   for (const file of [
     "AGENTS.md", "CLAUDE.md", ".mcp.json", ".claude/skills/leancraft/SKILL.md",
-    ".opencode/skills/leancraft/SKILL.md", ".cursor/rules/leancraft.mdc", ".github/CODEOWNERS"
+    ".opencode/skills/leancraft/SKILL.md", ".cursor/rules/leancraft.mdc"
   ]) copyMissing(path.join(pkgRoot, file), path.join(cwd, file), refresh && file !== ".github/CODEOWNERS" && file !== "AGENTS.md" && file !== "CLAUDE.md" && file !== ".mcp.json");
   run("install-hooks.mjs", []);
+  if (fresh) run("leancraft-sync.mjs", []);
+  console.log("Set CODEOWNERS and branch rules explicitly for YOUR repository owner. LeanCraft will not inject its own maintainer.");
   console.log("LeanCraft scaffold ready. Fill human docs, run 'npx leancraft validate', then 'npx leancraft lock'.");
   console.log("Existing human docs were preserved. The lock is a workflow safeguard, not an OS sandbox.");
 }

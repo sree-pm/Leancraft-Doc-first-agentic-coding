@@ -46,7 +46,7 @@ function tool(name, args = {}) {
   throw new Error("Unknown tool " + name);
 }
 function send(id, result, error) {
-  if (id === undefined || id === null) return;
+  if (id === undefined) return;
   process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, ...(error ? { error } : { result }) }) + "\n");
 }
 function handle(message) {

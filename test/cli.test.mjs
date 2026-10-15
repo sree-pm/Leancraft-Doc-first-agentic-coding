@@ -59,6 +59,9 @@ test("fresh init installs every runtime component and preserves project files", 
   assert.equal(r.status, 0, r.stderr);
   assert.equal(fs.readFileSync(human, "utf8"), "protected human text");
   assert.notEqual(execute(dir, ["validate"]).status, 0);
+  const ledger = fs.readFileSync(path.join(dir, ".leancraft/joint/ledger.jsonl"), "utf8");
+  assert.doesNotMatch(ledger, /2026-08-30T20:27:03/);
+  assert.equal(fs.existsSync(path.join(dir, ".github/CODEOWNERS")), false);
   assert.equal(execute(dir, ["templates"]).status, 0);
 });
 test("validated docs allow locking and locked feature generation is rejected", t => {
@@ -71,6 +74,11 @@ test("validated docs allow locking and locked feature generation is rejected", t
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const cfg = JSON.parse(fs.readFileSync(path.join(dir, ".leancraft/config.json"), "utf8"));
   assert.equal(cfg.locked, true);
+  assert.ok(Object.keys(cfg.lockedFiles).length > 10);
+  fs.appendFileSync(path.join(dir, ".leancraft/human/definition/guardrails.md"), "\nNew undocumented change.\n");
+  assert.notEqual(execute(dir, ["validate"]).status, 0, "post-review human-document drift must fail");
+  assert.equal(execute(dir, ["unlock"]).status, 0);
+  assert.equal(execute(dir, ["lock"]).status, 0, "human may review and re-lock the changed contract");
   assert.notEqual(execute(dir, ["features"]).status, 0);
   assert.equal(execute(dir, ["unlock"]).status, 0);
   assert.equal(execute(dir, ["features"]).status, 0);

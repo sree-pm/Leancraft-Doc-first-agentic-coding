@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 const root = process.cwd(), lc = path.join(root, ".leancraft");
 const configFile = path.join(lc, "config.json");
@@ -65,6 +66,24 @@ for (const [group, docs] of Object.entries(cfg.docRegistry)) {
     if (rules.minFunctionalReqs && new Set([...content.matchAll(/\bFR-(\d+)\b/g)].map(m => m[1])).size < rules.minFunctionalReqs) errors.push(rel + ": insufficient distinct functional requirements");
     if (rules.minInvariants && new Set([...content.matchAll(/\*\*I(\d+):/g)].map(m => m[1])).size < rules.minInvariants) errors.push(rel + ": insufficient distinct invariants");
     if (rules.minOracles && new Set([...content.matchAll(/\*\*O(\d+):/g)].map(m => m[1])).size < rules.minOracles) errors.push(rel + ": insufficient distinct oracles");
+  }
+}
+if (!templatesOnly && cfg.locked) {
+  if (!cfg.lockedFiles || typeof cfg.lockedFiles !== "object") errors.push("Locked document manifest missing; unlock and relock after review");
+  else {
+    const dir = path.join(lc, "human");
+    const found = {};
+    function visit(current) {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isSymbolicLink()) { errors.push("Locked document tree contains symbolic link " + full); continue; }
+        if (entry.isDirectory()) visit(full);
+        else if (entry.isFile()) found[path.relative(dir, full).split(path.sep).join("/")] = createHash("sha256").update(fs.readFileSync(full)).digest("hex");
+      }
+    }
+    if (fs.existsSync(dir)) visit(dir);
+    for (const name of new Set([...Object.keys(found), ...Object.keys(cfg.lockedFiles)]))
+      if (found[name] !== cfg.lockedFiles[name]) errors.push("Locked human document changed: " + name);
   }
 }
 if (!templatesOnly) {

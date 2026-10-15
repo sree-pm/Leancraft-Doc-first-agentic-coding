@@ -20,7 +20,7 @@
       "agent/**",
       "joint/**"
     ],
-    "humanOwners": "@sree-pm",
+    "humanOwners": "project-defined GitHub code owner; not installed automatically",
     "enforcement": "cooperative CLI and optional git hook only; external branch protection required"
   },
   "budget": {
