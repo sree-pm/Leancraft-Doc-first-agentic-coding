@@ -1,7 +1,7 @@
-# Leancraft ownership enforcement
-# Human owns discovery + definition, agent owns agent/, both own joint/
-
-.leancraft/human/**  @human-owners
-.leancraft/agent/**  @leancraft-bot
-.leancraft/joint/**  @human-owners @leancraft-bot
-.leancraft/config.json  @human-owners
+# GitHub ownership becomes enforceable only when branch rules require code-owner review.
+/.github/ @sree-pm
+/.leancraft/human/ @sree-pm
+/.leancraft/config.json @sree-pm
+/AGENTS.md @sree-pm
+/bin/ @sree-pm
+/scripts/ @sree-pm

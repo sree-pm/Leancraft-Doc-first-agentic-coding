@@ -1,10 +1,10 @@
 {
   "name": "leancraft",
-  "version": "0.1.8",
-  "description": "Doc-first verified agency — stop vibe coding, start owning. Tight registry + locked human docs + auto agent context. For Claude Code, Cursor, Opencode, Windsurf.",
+  "version": "0.2.0",
+  "description": "Document-first, human-reviewed AI development workflow with testable contracts and portable CLI/MCP tooling",
   "type": "module",
   "bin": {
-    "leancraft": "bin/leancraft.js"
+    "leancraft": "./bin/leancraft.js"
   },
   "files": [
     "bin/",
@@ -12,45 +12,43 @@
     ".leancraft/",
     ".claude/",
     ".cursor/",
+    ".opencode/",
     "AGENTS.md",
     "CLAUDE.md",
-    ".mcp.json"
+    ".mcp.json",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:templates": "node bin/leancraft.js templates",
+    "verify": "npm run test:templates && npm test && npm pack --dry-run",
     "leancraft:validate": "node scripts/leancraft-validate.mjs",
     "leancraft:sync": "node scripts/leancraft-sync.mjs",
-    "leancraft:lock": "node scripts/leancraft-lock.mjs lock",
-    "leancraft:unlock": "node scripts/leancraft-lock.mjs unlock",
-    "leancraft:budget": "node scripts/leancraft-budget.mjs",
-    "leancraft:doctor": "node scripts/leancraft-doctor.mjs",
-    "leancraft:features": "node scripts/leancraft-features.mjs",
-    "leancraft:security": "echo 'TODO: wire semgrep + axe + codeql' && npm run leancraft:validate",
-    "prepare": "node scripts/install-hooks.mjs || true",
-    "test": "node scripts/leancraft-validate.mjs"
+    "leancraft:doctor": "node scripts/leancraft-doctor.mjs"
   },
   "keywords": [
-    "ai",
+    "doc-first",
     "agentic-coding",
-    "vibe-coding",
-    "docs-first",
     "claude-code",
     "cursor",
     "opencode",
     "mcp",
-    "spec-driven"
+    "spec-driven",
+    "ai-development"
   ],
   "author": "sree-pm",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sree-pm/leancraft.git"
+    "url": "git+https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding.git"
   },
-  "homepage": "https://github.com/sree-pm/leancraft#readme",
+  "homepage": "https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding#readme",
   "bugs": {
-    "url": "https://github.com/sree-pm/leancraft/issues"
+    "url": "https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"

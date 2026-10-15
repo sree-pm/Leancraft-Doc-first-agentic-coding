@@ -2,20 +2,24 @@ name: leancraft
 on:
   push:
     branches: [main]
-    tags-ignore: ["v*"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  validate:
+  verify:
+    name: Verify Node \${{ matrix.node }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: node scripts/leancraft-validate.mjs
-      - run: node scripts/leancraft-sync.mjs
-      - run: |
-          echo "TODO: add semgrep, codeql, axe here"
-          # semgrep --config .leancraft/human/definition/guardrails.md
-          # npx axe-core
+        with:
+          node-version: \${{ matrix.node }}
+      - run: npm run verify
