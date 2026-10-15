@@ -1,212 +1,102 @@
 #!/usr/bin/env node
-// leancraft validate — checks docRegistry tightness, no placeholders, min counts, URLs, sections
-// Run: node scripts/leancraft-validate.mjs [--fetch]  (or npm run leancraft:validate)
-// --fetch: also fetch each URL in 02-research/03-competitive and check HTTP 200 (truth check)
-// Exit 0 = PASS (Lock allowed), 1 = FAIL (Lock blocked)
+import fs from "node:fs";
+import path from "node:path";
 
-import fs from "fs";
-import path from "path";
-
-const root = path.resolve(process.cwd());
-const lcRoot = path.join(root, ".leancraft");
-const configPath = path.join(lcRoot, "config.json");
-const doFetch = process.argv.includes("--fetch");
-
-function read(p) {
-  try { return fs.readFileSync(p, "utf8"); } catch { return null; }
+const root = process.cwd(), lc = path.join(root, ".leancraft");
+const configFile = path.join(lc, "config.json");
+const errors = [], warnings = [];
+const templatesOnly = process.argv.includes("--templates");
+const fetchURLs = process.argv.includes("--fetch");
+function read(rel) { try { return fs.readFileSync(path.join(lc, rel), "utf8"); } catch { return null; } }
+function slug(value) { return value.toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+function headings(content) { return [...content.matchAll(/^#{2,4}\s+(.+)$/gm)].map(m => slug(m[1])); }
+function validURLs(content) {
+  const found = content.match(/https?:\/\/[^\s<>"'()[\]]+/g) || [];
+  return [...new Set(found.map(x => x.replace(/[.,;:!]+$/, "")).filter(x => {
+    try { const u = new URL(x); return ["http:", "https:"].includes(u.protocol) && u.hostname.includes(".") && !u.hostname.includes("..."); }
+    catch { return false; }
+  }))];
 }
-function exists(p) { return fs.existsSync(p); }
-
-const config = JSON.parse(read(configPath));
-if (!config) { console.error("Missing .leancraft/config.json"); process.exit(1); }
-
-let errors = [];
-let warnings = [];
-let checked = 0;
-
-function assert(cond, msg, isWarning = false) {
-  checked++;
-  if (!cond) (isWarning ? warnings : errors).push(msg);
+function placeholder(content) {
+  return /\[FILL:[^\]]*\]|\[(?:verbatim|Theme|Name|persona|feature-specific|1 paragraph[^\]]*|e\.g\.[^\]]*)\]|\bTODO:\s*(?!completed)/i.test(content);
 }
-
-function checkNoPlaceholders(file, content) {
-  // Check for unfilled template placeholders — [FILL: ...] is the marker after init
-  if (/\[FILL:/.test(content)) errors.push(`${file}: contains unfilled placeholder [FILL: — fill it, then re-run validate`);
-  // Also catch legacy TODO/TBD if human adds it
-  if (/\bTODO\b|\bTBD\b/.test(content) && !file.includes("templates/")) {
-    // Only warn for human files with TODO outside [FILL: context — could be a task
-    if (/TODO|TBD/.test(content) && content.includes("[FILL:")) {
-      // already reported above
-    } else if (/\bTODO\b/.test(content)) {
-      warnings.push(`${file}: contains TODO (ok if task, but will block Lock if [FILL: remains)`);
-    }
+function sections(name, text, required) {
+  const existing = headings(text);
+  for (const heading of required || []) {
+    if (!existing.some(h => h.includes(slug(heading)) || slug(heading).includes(h) && h.length >= 5))
+      errors.push(name + ": missing heading " + heading);
   }
 }
-
-function normalizeSection(s) {
-  return s.toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function checkSections(file, content, requiredSections) {
-  if (!requiredSections) return;
-  const normalizedContent = normalizeSection(content);
-  for (const sec of requiredSections) {
-    const needle = normalizeSection(sec);
-    const has = normalizedContent.includes(needle);
-    if (!has) errors.push(`${file}: missing required section "${sec}"`);
+let cfg;
+try { cfg = JSON.parse(fs.readFileSync(configFile, "utf8")); }
+catch (e) { console.error("LeanCraft validation failed: invalid/missing .leancraft/config.json: " + e.message); process.exit(1); }
+if (!cfg.docRegistry || typeof cfg.docRegistry !== "object") { console.error("Invalid docRegistry"); process.exit(1); }
+for (const [group, docs] of Object.entries(cfg.docRegistry)) {
+  for (const [name, spec] of Object.entries(docs)) {
+    if (!spec || typeof spec !== "object") continue;
+    if (spec.template && !read(spec.template)) errors.push("Missing bundled template " + spec.template);
+    if (templatesOnly || group === "conditional") continue;
+    if (name.includes("*")) continue;
+    const rel = "human/" + group + "/" + name;
+    const content = read(rel);
+    if (content === null) { if (spec.required) errors.push("Missing required document " + rel); else warnings.push("Optional document absent " + rel); continue; }
+    if (placeholder(content)) errors.push(rel + ": unresolved placeholder");
+    sections(rel, content, spec.sections);
+    const rules = spec.rules || {};
+    const pains = [...content.matchAll(/^#{2,3}\s+(P\d+)\s*:/gm)];
+    if (rules.minPainThemes && new Set(pains.map(m => m[1])).size < rules.minPainThemes) errors.push(rel + ": not enough distinct pain themes");
+    if (rules.minSources && validURLs(content).length < rules.minSources) errors.push(rel + ": not enough distinct valid URLs");
+    if (rules.requireQuoteAndURL) {
+      const blocks = content.split(/^#{2,3}\s+P\d+\s*:/gm).slice(1);
+      for (const [i, block] of blocks.entries()) {
+        if (!/\bQuote\s*:/i.test(block) || !/\bDate\s*:/i.test(block) || validURLs(block).length === 0)
+          errors.push(rel + ": pain block " + (i + 1) + " lacks quote, date or valid URL");
+      }
+    }
+    if (rules.minCompetitors) {
+      const rows = content.split("\n").filter(l => /^\|/.test(l) && !/^\|[\s\-:|]+\|?$/.test(l));
+      // Require competitors with at least one link, rather than counting separator or header lines.
+      if (rows.filter(l => validURLs(l).length > 0).length < rules.minCompetitors) errors.push(rel + ": fewer than " + rules.minCompetitors + " sourced competitor rows");
+    }
+    if (rules.requirePricingWithCurrency && !/[£€$]\s*\d/.test(content)) errors.push(rel + ": no numeric price with currency");
+    if (rules.minWedges && (content.match(/^\s*\d+[.)]\s+.+$/gm) || []).length < rules.minWedges) errors.push(rel + ": insufficient numbered wedges");
+    if (rules.minPersonas && new Set([...content.matchAll(/^##\s+Persona\s+(\d+)/gm)].map(m => m[1])).size < rules.minPersonas) errors.push(rel + ": insufficient distinct personas");
+    if (rules.minUserFlows && new Set([...content.matchAll(/^###\s+Flow\s+(\d+)/gm)].map(m => m[1])).size < rules.minUserFlows) errors.push(rel + ": insufficient distinct user flows");
+    if (rules.minFunctionalReqs && new Set([...content.matchAll(/\bFR-(\d+)\b/g)].map(m => m[1])).size < rules.minFunctionalReqs) errors.push(rel + ": insufficient distinct functional requirements");
+    if (rules.minInvariants && new Set([...content.matchAll(/\*\*I(\d+):/g)].map(m => m[1])).size < rules.minInvariants) errors.push(rel + ": insufficient distinct invariants");
+    if (rules.minOracles && new Set([...content.matchAll(/\*\*O(\d+):/g)].map(m => m[1])).size < rules.minOracles) errors.push(rel + ": insufficient distinct oracles");
   }
 }
-
-function countMatches(content, regex) {
-  return (content.match(regex) || []).length;
-}
-
-// Validate discovery + definition
-let prdFlowCount = 0;
-for (const [group, docs] of Object.entries(config.docRegistry)) {
-  if (group === "conditional") continue;
-  for (const [doc, spec] of Object.entries(docs)) {
-    if (doc.includes("*")) {
-      const dir = path.join(lcRoot, "human", "definition", "features");
-      if (exists(dir)) {
-        const files = fs.readdirSync(dir).filter(f => f.endsWith(".md") && f !== "README.md");
-        const realFeatures = files.filter(f => !f.includes("example"));
-        if (realFeatures.length === 0 && prdFlowCount > 0) {
-          errors.push(`human/definition/features/*.md: 06-prd.md has ${prdFlowCount} flows but no feature docs — create 1 per flow (042-kebab-case.md)`);
-        } else if (files.length === 0) {
-          warnings.push(`human/definition/features/*.md: no features yet (ok, ephemeral)`);
-        }
-        for (const f of files) {
-          const content = read(path.join(dir, f));
-          if (!content) continue;
-          checkNoPlaceholders(`human/definition/features/${f}`, content);
-          checkSections(`human/definition/features/${f}`, content, spec.sections);
-          if (!content.includes("FR-") || !content.includes("Source Trace")) {
-            warnings.push(`human/definition/features/${f}: missing Source Trace (FR-# + Persona)`);
-          }
-        }
-      }
-      continue;
-    }
-    let filePath;
-    if (group === "sprint") filePath = path.join(lcRoot, "human", "sprint", doc);
-    else if (group === "discovery") filePath = path.join(lcRoot, "human", "discovery", doc);
-    else if (group === "definition") filePath = path.join(lcRoot, "human", "definition", doc);
-    else filePath = path.join(lcRoot, doc);
-
-    const content = read(filePath);
-    if (!content) {
-      if (spec.required) errors.push(`${group}/${doc}: MISSING (required)`);
-      else warnings.push(`${group}/${doc}: missing (optional)`);
-      continue;
-    }
-    checkNoPlaceholders(`${group}/${doc}`, content);
-    checkSections(`${group}/${doc}`, content, spec.sections);
-
-    if (spec.rules) {
-      if (spec.rules.minPainThemes) {
-        const count = countMatches(content, /^###?\s+P\d+/gm);
-        assert(count >= spec.rules.minPainThemes, `${group}/${doc}: needs ${spec.rules.minPainThemes} pain themes (P1-P12), found ${count}`);
-      }
-      if (spec.rules.minSources) {
-        const urlCount = countMatches(content, /https?:\/\//g);
-        assert(urlCount >= spec.rules.minSources, `${group}/${doc}: needs ≥${spec.rules.minSources} URLs, found ${urlCount}`);
-      }
-      if (spec.rules.minCompetitors) {
-        const hasTable = content.includes("|") && content.toLowerCase().includes("competitor");
-        assert(hasTable, `${group}/${doc}: missing competitor table`);
-        const rows = content.split("\n").filter(l => l.trim().startsWith("|") && !l.toLowerCase().includes("competitor") && !l.includes("---") && l.includes("https://")).length;
-        if (rows < spec.rules.minCompetitors) {
-          // Fallback count without URL requirement
-          const altRows = content.split("\n").filter(l => l.trim().startsWith("|") && !l.toLowerCase().includes("competitor") && !l.includes("---")).length;
-          assert(altRows >= spec.rules.minCompetitors, `${group}/${doc}: needs ≥${spec.rules.minCompetitors} competitors, found ~${altRows}`);
-        }
-      }
-      if (spec.rules.minWedges) {
-        const wedgeCount = countMatches(content, /^\d+\./gm);
-        assert(wedgeCount >= spec.rules.minWedges, `${group}/${doc}: needs ≥${spec.rules.minWedges} wedges, found ${wedgeCount}`, true);
-      }
-      if (spec.rules.minPersonas) {
-        const personaCount = countMatches(content, /^##\s+Persona/mg);
-        if (personaCount < spec.rules.minPersonas) {
-          const alt = countMatches(content, /Persona \d/mg);
-          assert(alt >= spec.rules.minPersonas, `${group}/${doc}: needs ≥${spec.rules.minPersonas} personas, found ${personaCount} (alt ${alt})`);
-        }
-      }
-      if (spec.rules.minUserFlows) {
-        const flowCount = countMatches(content, /^###\s+Flow/mg);
-        assert(flowCount >= spec.rules.minUserFlows, `${group}/${doc}: needs ≥${spec.rules.minUserFlows} user flows, found ${flowCount}`);
-        if (group === "discovery" && doc === "06-prd.md") prdFlowCount = flowCount;
-      }
-      if (spec.rules.minFunctionalReqs) {
-        const frCount = countMatches(content, /FR-\d+/g);
-        assert(frCount >= spec.rules.minFunctionalReqs, `${group}/${doc}: needs ≥${spec.rules.minFunctionalReqs} FRs (FR-01...), found ${frCount}`);
-      }
-      if (spec.rules.minInvariants) {
-        const invCount = countMatches(content, /\*\*I\d+:/g);
-        assert(invCount >= spec.rules.minInvariants, `${group}/${doc}: needs ≥${spec.rules.minInvariants} invariants (I1:), found ${invCount}`);
-      }
-      if (spec.rules.minOracles) {
-        const oracleCount = countMatches(content, /\*\*O\d+:/g);
-        assert(oracleCount >= spec.rules.minOracles, `${group}/${doc}: needs ≥${spec.rules.minOracles} oracles (O1:), found ${oracleCount}`);
-      }
-      if (spec.rules.requireQuoteAndURL) {
-        const hasQuote = content.includes("Quote:");
-        const hasURL = content.includes("https://");
-        assert(hasQuote && hasURL, `${group}/${doc}: each pain needs Quote + Source URL`);
-      }
-      if (spec.rules.requirePricingWithCurrency) {
-        const hasCurrency = /\$|€|£/.test(content);
-        assert(hasCurrency, `${group}/${doc}: pricing table must have $/€/£`);
+if (!templatesOnly) {
+  const prd = read("human/discovery/06-prd.md") || "";
+  const flows = new Set([...prd.matchAll(/^###\s+Flow\s+(\d+)/gm)].map(m => m[1])).size;
+  const dir = path.join(lc, "human/definition/features");
+  const features = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith(".md") && !f.includes("example")) : [];
+  if (flows > features.length) errors.push("One feature document per PRD flow is required (" + flows + " flows, " + features.length + " feature documents)");
+  for (const name of features) {
+    const text = fs.readFileSync(path.join(dir, name), "utf8");
+    if (placeholder(text)) errors.push("Feature " + name + ": unresolved placeholder");
+    sections(name, text, cfg.docRegistry.definition?.["features/*.md"]?.sections || []);
+    if (!/\bFR-\d+\b/.test(text) || !/\bPersona\b/i.test(text) || !/\bFlow\b/i.test(text)) errors.push("Feature " + name + ": missing FR / Persona / Flow trace");
+  }
+  for (const name of Object.keys(cfg.docRegistry.conditional || {})) {
+    const content = read("human/discovery/" + name);
+    if (content && placeholder(content)) errors.push("Conditional doc " + name + ": unresolved placeholder");
+  }
+  if (fetchURLs) {
+    for (const doc of ["human/discovery/02-research.md", "human/discovery/03-competitive.md"]) {
+      for (const url of validURLs(read(doc) || "").slice(0, 20)) {
+        try {
+          const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000), redirect: "follow" });
+          if (!response.ok) warnings.push(doc + ": HEAD status " + response.status + " for " + url);
+        } catch (e) { warnings.push(doc + ": cannot verify URL " + url + ": " + e.message); }
       }
     }
+    warnings.push("HTTP status is not proof that quotes, dates or prices are authentic.");
   }
 }
-
-// --fetch: verify URLs are fetchable (truth check)
-if (doFetch) {
-  console.log("\n─ Fetch check (--fetch) ─");
-  const filesToFetch = ["human/discovery/02-research.md", "human/discovery/03-competitive.md"];
-  for (const rel of filesToFetch) {
-    const content = read(path.join(lcRoot, rel));
-    if (!content) continue;
-    const urls = [...content.matchAll(/https?:\/\/[^\s\)\]]+/g)].map(m => m[0].replace(/[,;]$/, ""));
-    const uniq = [...new Set(urls)].slice(0, 20); // cap 20 per file
-    if (uniq.length === 0) continue;
-    console.log(`  Fetching ${uniq.length} URLs from ${rel}...`);
-    for (const url of uniq) {
-      try {
-        const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) });
-        if (!res.ok) warnings.push(`${rel}: URL not fetchable (${res.status}) ${url}`);
-        else checked++;
-      } catch (e) {
-        warnings.push(`${rel}: URL fetch failed ${url} — ${e.message}`);
-      }
-    }
-  }
-}
-
-// Check joint files exist
-for (const jf of ["joint/decisions.log.md", "joint/ledger.jsonl", "agent/context.md", "agent/status.md"]) {
-  if (!exists(path.join(lcRoot, jf))) warnings.push(`${jf}: missing (auto, will be generated on sync)`);
-}
-
-// Output
-console.log("─ Leancraft Validate ─");
-console.log(`Checked: ${checked} assertions${doFetch ? " (+ fetch)" : ""}`);
-if (warnings.length) {
-  console.log(`\nWarnings (${warnings.length}):`);
-  warnings.forEach(w => console.log(`  ⚠ ${w}`));
-}
-if (errors.length) {
-  console.log(`\nErrors (${errors.length}):`);
-  errors.forEach(e => console.log(`  ✖ ${e}`));
-  console.log(`\nResult: FAIL — Lock blocked. Fix errors, then re-run.`);
-  if (!doFetch) console.log(`Tip: Run with --fetch to also verify URLs are fetchable.`);
-  process.exit(1);
-} else {
-  console.log(`\nResult: PASS — Lock allowed. (warnings: ${warnings.length})`);
-  if (config.locked) console.log("Note: config.json locked=true — human/** is READ-ONLY for agent.");
-  if (!doFetch) console.log(`Tip: Run with --fetch to verify URLs are fetchable (truth check).`);
-  process.exit(0);
-}
+console.log("LeanCraft " + (templatesOnly ? "template" : "document") + " validation");
+for (const warning of warnings) console.log("WARN " + warning);
+for (const error of errors) console.log("FAIL " + error);
+console.log(errors.length ? "FAIL (" + errors.length + " errors)" : "PASS");
+process.exitCode = errors.length ? 1 : 0;
