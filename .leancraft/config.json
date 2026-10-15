@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
-  "name": "leancraft",
-  "description": "Doc-first verified agency — the registry is the contract. Agent MUST read this first. Lock enforces ownership.",
+  "version": "1.2.0",
+  "name": "project",
+  "description": "LeanCraft reviewed document-first contract. Agents follow guidance; runtime security requires external controls.",
   "locked": false,
   "ownership": {
     "human": [
@@ -360,5 +360,15 @@
       "no-placeholders"
     ],
     "note": "Structural evidence lint, not proof of research accuracy, code quality, security or accessibility."
+  },
+  "quality": {
+    "commands": [],
+    "timeoutMs": 120000,
+    "explanation": "Configure argv arrays, e.g. [[\"npm\",\"test\"],[\"npm\",\"run\",\"lint\"]]. Shell execution is disabled. Empty commands block release gates."
+  },
+  "reviewPolicy": {
+    "attestation": "self-declared",
+    "requireLockedReview": true,
+    "externalHumanApprovalRequired": true
   }
 }

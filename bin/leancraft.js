@@ -59,6 +59,7 @@ function init() {
   run("install-hooks.mjs", []);
   if (fresh) run("leancraft-sync.mjs", []);
   console.log("Set CODEOWNERS and branch rules explicitly for YOUR repository owner. LeanCraft will not inject its own maintainer.");
+  console.log("Config quality.commands with your real test runner before using the release gate.");
   console.log("LeanCraft scaffold ready. Fill human docs, run 'npx leancraft validate', then 'npx leancraft lock'.");
   console.log("Existing human docs were preserved. The lock is a workflow safeguard, not an OS sandbox.");
 }
@@ -70,6 +71,11 @@ function help() {
     "  npx leancraft lock|unlock      Record human document review state\n" +
     "  npx leancraft sync             Refresh derived context; preserve progress\n" +
     "  npx leancraft features         Draft documents for PRD flows (when unlocked)\n" +
+    "  npx leancraft approve --by <human>  Record a self-declared review after lock\n" +
+    "  npx leancraft revoke --by <human> --reason <text>\n" +
+    "  npx leancraft verify           Execute configured quality commands and record evidence\n" +
+    "  npx leancraft gate build|release  Check readiness and freshness\n" +
+    "  npx leancraft trace            Report FR, Flow and Persona traceability\n" +
     "  npx leancraft doctor|status|budget|mcp\n");
 }
 if (!command || ["help", "-h", "--help"].includes(command)) help();
@@ -81,6 +87,10 @@ else if (command === "lock" || command === "unlock") run("leancraft-lock.mjs", [
 else if (command === "sync") run("leancraft-sync.mjs");
 else if (command === "features") run("leancraft-features.mjs");
 else if (command === "doctor") run("leancraft-doctor.mjs");
+else if (command === "approve" || command === "revoke") run("leancraft-review.mjs", [command, ...args.slice(1)]);
+else if (command === "verify") run("leancraft-verify.mjs", []);
+else if (command === "gate") run("leancraft-gate.mjs");
+else if (command === "trace") run("leancraft-trace.mjs", []);
 else if (command === "budget") run("leancraft-budget.mjs");
 else if (command === "status") run("leancraft-validate.mjs");
 else if (command === "mcp") console.log(JSON.stringify({ mcpServers: { leancraft: { command: process.execPath, args: [path.join(cwd, ".leancraft/runtime/mcp-server.mjs")] } } }, null, 2));
