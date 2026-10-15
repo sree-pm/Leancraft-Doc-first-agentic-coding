@@ -47,6 +47,6 @@ else if (command === "verify") run("leancraft-verify.mjs", []);
 else if (command === "gate") run("leancraft-gate.mjs");
 else if (command === "trace") run("leancraft-trace.mjs", []);
 else if (command === "budget") run("leancraft-budget.mjs");
-else if (command === "status") run("leancraft-validate.mjs");
+else if (command === "status") run("leancraft-status.mjs");
 else if (command === "mcp") console.log(JSON.stringify({ mcpServers: { leancraft: { command: process.execPath, args: [path.join(cwd, ".leancraft/runtime/mcp-server.mjs")] } } }, null, 2));
 else { console.error("Unknown command: " + command); help(); process.exitCode = 2; }
