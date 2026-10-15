@@ -36,6 +36,6 @@ jobs:
       - name: Publish with npm trusted publishing (OIDC)
         run: npm publish --access public
       - name: Create GitHub release only after npm publish succeeds
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
