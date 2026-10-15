@@ -27,9 +27,20 @@ for (const args of commands) {
     process.exit(2);
   }
   const [executable, ...argv] = args;
+  let binary = executable, realArgs = argv;
+  // Windows npm.cmd is a command-shell shim; invoke its real JavaScript CLI without a shell.
+  if (process.platform === "win32" && (executable === "npm" || executable === "npx")) {
+    const probable = process.env.npm_execpath || path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+    const cli = probable.endsWith(".js") && fs.existsSync(probable) ? probable :
+      path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+    if (fs.existsSync(cli)) {
+      binary = process.execPath;
+      realArgs = [cli, ...(executable === "npx" ? ["exec", "--"] : []), ...argv];
+    }
+  }
   console.log("RUN " + JSON.stringify(args));
   const started = Date.now();
-  const run = spawnSync(executable, argv, { cwd, shell: false, encoding: "utf8", timeout: maxMs, maxBuffer: 1024 * 1024 });
+  const run = spawnSync(binary, realArgs, { cwd, shell: false, encoding: "utf8", timeout: maxMs, maxBuffer: 1024 * 1024 });
   const status = run.status === null ? 1 : run.status;
   const entry = {
     argv: args, exitCode: status, durationMs: Date.now() - started,
