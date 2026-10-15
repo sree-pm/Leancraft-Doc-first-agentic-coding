@@ -1,15 +1,7 @@
-# Security Policy
+# Security policy
 
-## Reporting
+Report security vulnerabilities privately through https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding/security/advisories/new
 
-Please do not open public issues for security vulnerabilities. Email the maintainers or open a private security advisory: https://github.com/sree-pm/leancraft/security/advisories/new
+LeanCraft is a file-based CLI, scaffold and MCP tool. It does NOT implement an OS sandbox, a secure credential store, network isolation, authenticated human approvals or enforced API budgets. Lock flags and git hooks can be bypassed by actors with filesystem/shell privileges. Use least-privilege agent processes, branch protection, required code reviews, isolated execution and separately secured credentials. MCP proposals are untrusted and never applied automatically.
 
-We aim to respond within 48 hours.
-
-## Scope
-
-Leancraft is a doc-first scaffold + CLI. It does not run your code in production. The sandbox defaults are `deny-all` network, read-only `GITHUB_TOKEN`, and no `.env` access. If you find a bypass, report it.
-
-## Supported Versions
-
-`main` is supported. Pin `leancraft` version in `package.json`.
+Supported: latest release and main branch. Fixes are prioritised by vulnerability impact.

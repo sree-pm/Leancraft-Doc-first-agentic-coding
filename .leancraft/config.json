@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "leancraft",
   "description": "Doc-first verified agency — the registry is the contract. Agent MUST read this first. Lock enforces ownership.",
   "locked": false,
@@ -20,14 +20,15 @@
       "agent/**",
       "joint/**"
     ],
-    "humanOwners": "@human-owners"
+    "humanOwners": "@sree-pm",
+    "enforcement": "cooperative CLI and optional git hook only; external branch protection required"
   },
   "budget": {
     "maxCostUSD": 5,
     "maxToolCalls": 25,
     "maxWallClockMinutes": 30,
-    "sandbox": "gvisor",
-    "network": "deny-all",
+    "sandbox": "NOT_PROVIDED",
+    "network": "NOT_ENFORCED",
     "allowlist": [
       "registry.npmjs.org",
       "registry.yarnpkg.com",
@@ -39,7 +40,8 @@
       "AWS_*",
       "GITHUB_TOKEN"
     ],
-    "githubTokenScope": "read-only"
+    "githubTokenScope": "NOT_ENFORCED",
+    "note": "Limits, allowlists and secret protections are advisory only until an external runner enforces them."
   },
   "sprintGates": {
     "prototypeRequires": "human/definition/intent.md",
@@ -356,6 +358,7 @@
       "min-counts",
       "requireURLs",
       "no-placeholders"
-    ]
+    ],
+    "note": "Structural evidence lint, not proof of research accuracy, code quality, security or accessibility."
   }
 }

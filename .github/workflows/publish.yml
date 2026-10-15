@@ -17,7 +17,7 @@ jobs:
       - run: npm run verify
       - name: Confirm matching release tag
         env:
-          RELEASE_TAG: \${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: node -e "const v=require('./package.json').version;if(process.env.RELEASE_TAG !== 'v'+v)process.exit(1)"
 
   publish:
