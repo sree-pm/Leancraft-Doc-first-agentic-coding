@@ -33,6 +33,22 @@ The first `validate` will normally **fail** because the project-specific human d
 
 To undo a review, run `leancraft revoke --by "Reviewer" --reason "Changed requirement"`. Unlocking invalidates a previous approval. Real reviewers should operate through separately authenticated branch protections.
 
+## Proportionate research profiles
+
+Not every project needs twelve pain themes or nine competitor comparisons. Choose the explicitly reviewed documentation depth that matches its scope:
+
+```sh
+leancraft profile lean --by "Product Owner" --reason "Small low-risk utility"
+leancraft profile standard --by "Product Owner" --reason "Commercial application"
+leancraft profile assured --by "Product Owner" --reason "Research-intensive high-impact product"
+```
+
+Profiles change numerical research and specification minimums. They do **not** prove customer claims, regulatory compliance or security. Switching is blocked while the contract is locked, and decisions are recorded in the joint audit.
+
+## Source verification safety
+
+`leancraft validate --fetch` does not make outbound requests by default. The optional URL HEAD checker requires a manually vetted `research.fetchAllowlist` of public HTTPS hostnames; it does not follow redirects. Network isolation remains the operator's responsibility, and URL reachability is not evidence that a quote or price is accurate.
+
 ## Actual test execution
 
 Add project-specific commands to `.leancraft/config.json`:
