@@ -1,71 +1,87 @@
 # LeanCraft
 
-**Document-first, human-reviewed workflow for AI-assisted software development.**
+**Human-reviewed, document-first engineering for AI coding agents.** Make product decisions explicit, trace work to requirements, retain agent progress and prove changes using real tests.
 
-LeanCraft makes the product contract explicit and traceable before coding, persists context between sessions and provides portable scaffolding for different agent hosts. It is an open-source CLI and MCP companion, **not** an autonomous coding agent or secure sandbox.
+LeanCraft is an open-source CLI, Markdown contract system and local MCP companion. It is not an AI model, an agent host, an OS sandbox, an authenticated approval server or a guarantee of correct software.
 
-## Installation
+## Getting started
 
-Requires Node.js 20 or newer. From a project directory:
+Node.js 22 or newer is required. Run in a new or existing project:
 
 ```sh
-npx leancraft@latest init
-npx leancraft validate
+npx leancraft init
 npx leancraft doctor
-```
-
-The first validation is expected to fail, because research and specification templates have not been filled. Do not invent content merely to pass the validator.
-
-For pinned team installations use `npm install --save-dev leancraft@0.2.0` then `npx leancraft init`. The `--force` init option refreshes managed runtime, agent skills and templates without overwriting existing human research or decisions.
-
-## Six-stage workflow
-
-1. **Understand:** inspect the existing repository, problem, users and constraints; distinguish facts and assumptions.
-2. **Discover:** gather documented pain, competitor and user evidence with source URLs, dates and confidence.
-3. **Define:** write requirements, flows, feature specifications, invariants, oracles, architecture, privacy and accessibility constraints.
-4. **Human review:** validate the contract, approve decisions and lock. Agents propose rather than edit locked human documents.
-5. **Build and verify:** implement bounded feature slices with unit, integration, E2E, security and regression tests. Maintain persistent progress.
-6. **Release and learn:** review pull requests, CI, packaging, licence, telemetry and post-release outcomes. Update contracts through human review.
-
-The default template registry has detailed requirements. Adapt depth to your project's risk and stage by explicitly reviewing the registry, not by making up evidence.
-
-## Workspace
-
-| Directory | Responsibility |
-| --- | --- |
-| `.leancraft/human/discovery/` | Human-reviewed research and PRD |
-| `.leancraft/human/definition/` | Intent, invariants, architecture, guardrails and feature specs |
-| `.leancraft/agent/progress.md` | Persistent agent progress, never overwritten by sync |
-| `.leancraft/agent/context.md` | Short derived context for agent handoffs |
-| `.leancraft/agent/proposals/` | Unapplied change proposals for human review |
-| `.leancraft/joint/` | Decision history, test reports and observed ledger events |
-| `.leancraft/templates/` | Registry templates |
-| `.leancraft/runtime/` | Portable scripts used by project-local MCP and hooks |
-
-The scaffold includes shared `AGENTS.md`, Claude Code skills, OpenCode skills and Cursor rules. Verify each host actually loads its integration. The local MCP server is configured by `.mcp.json`, and `npx leancraft mcp` prints its launch configuration.
-
-## Commands
-
-```sh
-npx leancraft init [--force]
-npx leancraft validate [--fetch]
-npx leancraft templates
-npx leancraft lock
-npx leancraft unlock
-npx leancraft features
-npx leancraft sync
 npx leancraft status
-npx leancraft budget
-npx leancraft doctor
-npx leancraft mcp
 ```
 
-`validate` checks document structure, required sections, distinct IDs and source URL formatting. With `--fetch` it can make bounded HTTP HEAD checks. It **does not** verify quotes, pricing accuracy or that software works. Only real implementation tests can do that.
+The first `validate` will normally **fail** because the project-specific human documents are drafts. That is intentional. Do not invent customer research or code verification to make it green.
 
-`lock` records cooperative review state. Shell-capable agents can bypass the CLI, Git hooks and Markdown instructions. Strong control requires isolated execution, scoped credentials, protected branches and reviewer approvals. Spending limits and network restrictions in configuration are advisory.
+**Upgrades:** `npx leancraft init --force` updates previously unmodified managed files, while preserving project-authored documents, progress, modified agent rules and Git hooks. Files requiring human merges are reported. Older runtimes are backed up during migration.
 
-## Contributing
+## Workflow: idea to reviewed release
 
-Clone `https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding.git` and run `npm run verify` to execute fixture-based CLI/MCP/security tests and dry-run package contents. See [Workflow](docs/WORKFLOW.md), [Architecture](docs/ARCHITECTURE.md), [Security](SECURITY.md), [Contributing](CONTRIBUTING.md) and [Release Checklist](docs/RELEASE_CHECKLIST.md).
+| Stage | Purpose | Primary commands |
+|---|---|---|
+| Inspect | Assess project, constraints, existing code and tests | `doctor`, `status` |
+| Discover | Document source-backed user pains, alternatives, jobs and risks | Human discovery docs |
+| Specify | Document PRD flows, FR/NFR, UX/security, invariants and acceptance | `features --dry-run`, `features`, `validate` |
+| Trace | Ensure PRD requirements, flows and personas appear in real feature docs | `trace` |
+| Review | Lock reviewed contract; record named, **self-declared** human reviewer | `lock`, `approve --by "Reviewer"`, `gate build` |
+| Implement | Build testable slices and preserve progress across AI sessions | `sync`, agent/progress.md |
+| Prove | Execute real tests from quality.commands and store exit codes | `verify` |
+| Release | Reject stale tests, changed contracts and dirty tracked code | `gate release` |
 
-MIT licensed.
+To undo a review, run `leancraft revoke --by "Reviewer" --reason "Changed requirement"`. Unlocking invalidates a previous approval. Real reviewers should operate through separately authenticated branch protections.
+
+## Proportionate research profiles
+
+Not every project needs twelve pain themes or nine competitor comparisons. Choose the explicitly reviewed documentation depth that matches its scope:
+
+```sh
+leancraft profile lean --by "Product Owner" --reason "Small low-risk utility"
+leancraft profile standard --by "Product Owner" --reason "Commercial application"
+leancraft profile assured --by "Product Owner" --reason "Research-intensive high-impact product"
+```
+
+Profiles change numerical research and specification minimums. They do **not** prove customer claims, regulatory compliance or security. Switching is blocked while the contract is locked, and decisions are recorded in the joint audit.
+
+## Source verification safety
+
+`leancraft validate --fetch` does not make outbound requests by default. The optional URL HEAD checker requires a manually vetted `research.fetchAllowlist` of public HTTPS hostnames; it does not follow redirects. Network isolation remains the operator's responsibility, and URL reachability is not evidence that a quote or price is accurate.
+
+## Actual test execution
+
+Add project-specific commands to `.leancraft/config.json`:
+
+```json
+"quality": {
+  "commands": [["node", "--test"], ["node", "scripts/check-build.mjs"]],
+  "timeoutMs": 120000
+}
+```
+
+Each command is an executable with an argument array, not a shell snippet. LeanCraft runs commands and stores their actual exit status, duration and SHA-256 output digest. Release gating ties this report to Git HEAD, clean tracked files and the current approved contract. It does not execute or inspect an AI model or deploy a product.
+
+## Coding-agent integrations
+
+The scaffold includes shared `AGENTS.md` plus Claude Code and OpenCode skill files, Cursor rules and a local stdio MCP server. The MCP server can read current intent/context, run non-mutating readiness checks, report trace coverage and **draft** proposals for human-document changes without applying them.
+
+Support inside any specific coding-agent host should be tested separately; a file existing on disk does not prove that a host loaded it.
+
+## Trust and limitations
+
+A local lock, hash, Git hook or self-declared reviewer cannot stop an unrestricted shell-capable agent from editing files. Strong control requires independent GitHub branch reviews, separate credentials, actual sandboxing and tightly scoped tool permissions. Document research URLs are not proof of quotes or prices; unit tests are not proof of universal correctness. Cost limits in the sample config remain advisory.
+
+## Developers and maintainers
+
+```sh
+git clone https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding.git
+cd Leancraft-Doc-first-agentic-coding
+npm run verify
+```
+
+CI runs on Linux, macOS and Windows with Node 22 and 24, including a clean installation from an npm tarball. The release workflow is gated by tests and requires npm trusted-publisher configuration before publishing.
+
+See [Workflow](docs/WORKFLOW.md), [Architecture](docs/ARCHITECTURE.md), [Acceptance Matrix](docs/ACCEPTANCE_MATRIX.md), [Release Checklist](docs/RELEASE_CHECKLIST.md), [Security](SECURITY.md) and [Contributing](CONTRIBUTING.md).
+
+**Current development version:** 0.3.0, not yet published. MIT licence.

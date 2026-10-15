@@ -29,6 +29,8 @@ if (action === "lock") {
   } catch { console.error("Cannot lock while validation fails."); process.exit(1); }
 }
 cfg.locked = action === "lock";
+// Any re-lock or unlock invalidates the previous explicit approval, even if files are identical.
+delete cfg.review;
 if (cfg.locked) cfg.lockedFiles = hashes(path.join(process.cwd(), ".leancraft/human"));
 else delete cfg.lockedFiles;
 cfg.lockedAt = cfg.locked ? new Date().toISOString() : null;

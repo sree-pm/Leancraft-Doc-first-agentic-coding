@@ -1,6 +1,6 @@
 {
   "name": "leancraft",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Document-first, human-reviewed AI development workflow with testable contracts and portable CLI/MCP tooling",
   "type": "module",
   "bin": {
@@ -25,7 +25,8 @@
     "verify": "npm run test:templates && npm test && npm pack --dry-run",
     "leancraft:validate": "node scripts/leancraft-validate.mjs",
     "leancraft:sync": "node scripts/leancraft-sync.mjs",
-    "leancraft:doctor": "node scripts/leancraft-doctor.mjs"
+    "leancraft:doctor": "node scripts/leancraft-doctor.mjs",
+    "test:contracts": "node --test test/*.test.mjs"
   },
   "keywords": [
     "doc-first",
@@ -48,7 +49,7 @@
     "url": "https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"
