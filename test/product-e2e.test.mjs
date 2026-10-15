@@ -65,8 +65,12 @@ test("real toy application is blocked when broken and allowed only after actual 
   assert.equal(git(dir,["config","user.name","LeanCraft E2E"]).status,0);
   assert.equal(git(dir,["add","-A"]).status,0);
   assert.equal(git(dir,["commit","-qm","Reviewed contract and buggy app"]).status,0);
+  const direct=spawnSync(process.execPath, ["--test","tests/discount.test.mjs"],{cwd:dir,encoding:"utf8",timeout:30000});
+  assert.notEqual(direct.status,0,"Broken app unexpectedly passed standalone Node tests: "+direct.stdout+" "+direct.stderr);
   const first=exec(dir,["verify"]);
-  assert.notEqual(first.status,0,"The release must detect a real failing implementation test");
+  const evidenceFirst=fs.existsSync(path.join(lc,"joint/verification.json"))?
+    fs.readFileSync(path.join(lc,"joint/verification.json"),"utf8"):"missing evidence";
+  assert.notEqual(first.status,0,"Broken implementation must fail: stdout="+first.stdout+" stderr="+first.stderr+" evidence="+evidenceFirst);
   assert.notEqual(exec(dir,["gate","release"]).status,0);
   write(dir,"src/discount.mjs","export const discounted=(price,pct)=>price*(1-pct/100);\n");
   assert.equal(git(dir,["add","-A"]).status,0);
