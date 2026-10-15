@@ -103,15 +103,27 @@ if (!templatesOnly) {
     if (content && placeholder(content)) errors.push("Conditional doc " + name + ": unresolved placeholder");
   }
   if (fetchURLs) {
+    const allowlist = Array.isArray(cfg.research?.fetchAllowlist) ? cfg.research.fetchAllowlist : [];
+    if (!allowlist.length) warnings.push("External source checks disabled by default. Set research.fetchAllowlist with vetted HTTPS hostnames to permit HEAD requests.");
     for (const doc of ["human/discovery/02-research.md", "human/discovery/03-competitive.md"]) {
       for (const url of validURLs(read(doc) || "").slice(0, 20)) {
+        const parsed = new URL(url);
+        const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+        // Block internal hosts, arbitrary IP addresses, non-TLS and redirects.
+        if (parsed.protocol !== "https:" || (parsed.port && parsed.port !== "443") ||
+          !allowlist.includes(hostname) || !/^[a-z0-9.-]+$/.test(hostname) ||
+          /(^localhost$|\.localhost$|\.local$|\.internal$|\.invalid$|\.test$|\.onion$)/.test(hostname) ||
+          /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+          warnings.push("Skipped unapproved or unsafe source URL: " + url);
+          continue;
+        }
         try {
-          const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000), redirect: "follow" });
+          const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000), redirect: "manual" });
           if (!response.ok) warnings.push(doc + ": HEAD status " + response.status + " for " + url);
         } catch (e) { warnings.push(doc + ": cannot verify URL " + url + ": " + e.message); }
       }
     }
-    warnings.push("HTTP status is not proof that quotes, dates or prices are authentic.");
+    warnings.push("Even a successful HEAD status is not proof that quotes, dates or prices are authentic. Network egress controls must be applied externally.");
   }
 }
 console.log("LeanCraft " + (templatesOnly ? "template" : "document") + " validation");

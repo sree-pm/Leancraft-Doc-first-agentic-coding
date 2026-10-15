@@ -53,7 +53,9 @@ function call(name, args) {
     const normalized = path.posix.normalize(target);
     if (!target.startsWith("human/") || !normalized.startsWith("human/") || normalized === "human/" || target.includes("\0")) throw new Error("Human contract path required");
     const directory = path.join(lc, "agent/proposals");
-    if (fs.existsSync(directory) && fs.lstatSync(directory).isSymbolicLink()) throw new Error("Proposal directory symlink refused");
+    for (const dir of [lc, path.join(lc, "agent"), directory]) {
+      if (fs.existsSync(dir) && fs.lstatSync(dir).isSymbolicLink()) throw new Error("Symlinked proposal path refused");
+    }
     fs.mkdirSync(directory, { recursive: true });
     const filename = randomUUID() + ".md";
     fs.writeFileSync(path.join(directory, filename), [

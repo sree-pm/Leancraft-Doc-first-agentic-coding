@@ -16,6 +16,12 @@ const flows = [...prd.matchAll(/^###\s+Flow\s+(\d+)\s*:\s*(.+)$/gm)].map(m => ({
 }));
 if (!flows.length) { console.error("No numbered ### Flow N: headings found in PRD."); process.exit(1); }
 const fileDir = path.join(lc, "human/definition/features");
+for (const dir of [lc, path.join(lc, "human"), path.join(lc, "human/definition"), fileDir]) {
+  if (fs.existsSync(dir) && fs.lstatSync(dir).isSymbolicLink()) {
+    console.error("Refusing symlinked feature directory: " + dir);
+    process.exit(1);
+  }
+}
 const template = fs.readFileSync(path.join(lc, "templates/definition/feature.md"), "utf8");
 if (!dry) fs.mkdirSync(fileDir, { recursive: true });
 const refs = new Map(flows.map(f => [f.id, []]));

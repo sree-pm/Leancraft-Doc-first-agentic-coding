@@ -371,5 +371,9 @@
     "requireLockedReview": true,
     "externalHumanApprovalRequired": true
   },
-  "profile": "assured"
+  "profile": "assured",
+  "research": {
+    "fetchAllowlist": [],
+    "explanation": "External HEAD checks are disabled by default. Explicitly allow vetted public HTTPS hostnames to perform bounded checks; no automatic truth verification."
+  }
 }
