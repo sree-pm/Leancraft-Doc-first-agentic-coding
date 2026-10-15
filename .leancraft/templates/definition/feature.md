@@ -1,32 +1,30 @@
 # Feature — [NNN-kebab-case, e.g., 042-pdf-export]
 
-> REQUIRED: intent, invariants, oracles, acceptance. 1 per flow from 06-prd.md. Ephemeral — delete when shipped.
+> Status: DRAFT. Permanent traceable record, including after delivery. No fabricated acceptance evidence.
 
 ## Intent
 
 [1 paragraph, distilled from 06-prd.md Flow N]
 
-## Invariants (scoped to this feature)
+## Invariants
 
-- **I1:** [feature-specific, e.g., PDF contains all line items for scopeId]
-- **I2:** ...
+- **I1:** TODO: document an observable invariant
 
 ## Oracles
 
-- **O1:** Property test: ...
-- **O2:** e2e: ...
+- **O1:** TODO: name the executable test and expected result
 
-## Acceptance (human-checkable)
+## Acceptance
 
-- [ ] Given ... When ... Then ...
-- [ ] Axe passes
-- [ ] Perf <2s
+- [ ] TODO: define Given / When / Then user-facing success criteria
+- [ ] TODO: define negative and failure cases
 
 ## Source Trace
 
-- FR-05, Persona: Solo Sree
+- TODO: link real FR IDs, Flow N, Persona N and evidence
 
-## Validation
+## Verification
 
-- [ ] Invariants have Check
-- [ ] Source trace present
+- State: NOT_RUN
+- Test command: TODO
+- Evidence: TODO

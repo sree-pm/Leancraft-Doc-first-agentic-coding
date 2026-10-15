@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { contractDigest } from "./leancraft-contract.mjs";
 
 const cwd = process.cwd(), root = path.join(cwd, ".leancraft"), cfgFile = path.join(root, "config.json");
 if (!fs.existsSync(cfgFile)) { console.error("Run leancraft init first."); process.exit(1); }
@@ -41,7 +42,7 @@ for (const args of commands) {
 }
 const output = {
   schemaVersion: 1, recordedAt: new Date().toISOString(), commit: gitSha, cleanTrackedTree: gitClean,
-  reviewApprovalId: cfg.review?.approvalId || null, manifest,
+  reviewApprovalId: cfg.review?.approvalId || null, manifest, contractDigest: contractDigest(cfg),
   passed: results.every(x => x.passed), results
 };
 const file = path.join(root, "joint/verification.json");

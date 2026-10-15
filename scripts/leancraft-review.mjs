@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { contractDigest } from "./leancraft-contract.mjs";
 
 const root = path.join(process.cwd(), ".leancraft");
 const configPath = path.join(root, "config.json");
@@ -34,7 +35,7 @@ const record = {
   timestamp: new Date().toISOString(),
   lockedAt: cfg.lockedAt || null
 };
-if (action === "approve") cfg.review = { approvedBy: reviewer.trim(), approvalId: record.id, lockedAt: cfg.lockedAt, approvedAt: record.timestamp };
+if (action === "approve") cfg.review = { approvedBy: reviewer.trim(), approvalId: record.id, lockedAt: cfg.lockedAt, approvedAt: record.timestamp, contractDigest: contractDigest(cfg) };
 else delete cfg.review;
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + "\n");
 const log = path.join(root, "joint/reviews.jsonl");
