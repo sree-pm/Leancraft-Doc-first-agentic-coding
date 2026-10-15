@@ -1,14 +1,16 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.3.0 (under review, unpublished)
 
-- Fixed broken lock command and shell-interpolated CLI execution.
-- Added project-local runtime scripts for portable MCP, validation and optional hooks.
-- Made upgrades preserve human-authored documents and existing Git hooks.
-- Added stricter evidence-aware document checks and feature traceability.
-- Added non-applying MCP proposals with unique filenames and structured error handling.
-- Preserved durable agent progress while regenerating context; stopped fabricated budget totals.
-- Added integration and security tests, updated CI and OIDC-gated release workflow.
-- Corrected documentation to distinguish procedural controls from actual sandbox enforcement.
+- Added distinct named, self-declared review records and contract freshness checks.
+- Added FR/Flow/Persona trace report and build/release gates.
+- Added real configured-command verifier, captured exit codes/output digests, Git SHA and clean-tree checks.
+- Added non-destructive manifest-based installer, schema migration and customisation preservation.
+- Improved doctor/status distinction between setup health and incomplete documentation.
+- Added modern MCP protocol negotiation, structured tool errors and safer pending proposals.
+- Added installer, release, trace, review and malformed MCP integration tests.
+- Updated engineering skill instructions and accurate security boundaries.
 
-Do not tag or publish until CI, npm trusted publisher and release checks are verified.
+## 0.2.0
+
+- Portable runtime scaffolding, CLI improvements, safer proposals, validation and CI hardening.
