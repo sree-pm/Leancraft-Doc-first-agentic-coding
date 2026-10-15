@@ -88,6 +88,9 @@ test("release requires real successful checks on a clean matching git commit", t
   assert.equal(verify.status, 0, verify.stdout + verify.stderr);
   const pass = exec(dir, ["gate", "release"]);
   assert.equal(pass.status, 0, pass.stdout + pass.stderr);
+  fs.writeFileSync(path.join(dir, "UNTRACKED-SOURCE.js"), "process.exit(0)");
+  assert.notEqual(exec(dir, ["gate", "release"]).status, 0, "untracked source files must block release");
+  fs.unlinkSync(path.join(dir, "UNTRACKED-SOURCE.js"));
   fs.appendFileSync(path.join(dir, "AGENTS.md"), "\nAdversarial tracked code change.\n");
   assert.notEqual(exec(dir, ["gate", "release"]).status, 0, "dirty tracked changes must block release");
 });

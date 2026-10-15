@@ -28,7 +28,7 @@ if (kind === "release") {
   let sha = null, clean = false;
   try {
     sha = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-    clean = execFileSync("git", ["status", "--porcelain", "--untracked-files=no"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() === "";
+    clean = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() === "";
   } catch {}
   check("verification matches Git commit and no tracked changes", Boolean(report && sha && report.commit === sha && clean && report.cleanTrackedTree));
 }

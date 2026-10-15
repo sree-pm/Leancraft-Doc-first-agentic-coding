@@ -16,7 +16,7 @@ if (!Array.isArray(commands) || commands.length === 0) {
 let gitSha = null, gitClean = false;
 try {
   gitSha = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-  gitClean = execFileSync("git", ["status", "--porcelain", "--untracked-files=no"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() === "";
+  gitClean = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() === "";
 } catch {}
 const manifest = createHash("sha256").update(JSON.stringify(cfg.lockedFiles || {})).digest("hex");
 const maxMs = Math.max(1000, Math.min(900000, Number(cfg.quality?.timeoutMs) || 120000));

@@ -96,6 +96,7 @@ if (fs.existsSync(localConfig)) {
 }
 // Only managed files can be upgraded. User authored docs, progress and decisions are NEVER refreshed.
 managed(path.join(pkgRoot, ".leancraft/templates"), path.join(root, "templates"));
+managed(path.join(pkgRoot, ".leancraft/joint/.gitignore"), path.join(root, "joint/.gitignore"));
 managed(path.join(pkgRoot, "scripts"), path.join(root, "runtime"), { allowLegacyRuntime: true });
 for (const rel of ["AGENTS.md","CLAUDE.md",".mcp.json",
   ".claude/skills/leancraft/SKILL.md",".opencode/skills/leancraft/SKILL.md",
