@@ -1,6 +1,10 @@
 ---
 name: leancraft
-description: Document-first human-approved coding with traceability, progress and testing evidence
+description: Use a reviewed, traceable document-first agentic engineering workflow, with real test evidence and persistent progress.
 ---
 
-Read AGENTS.md as the canonical project instruction and .leancraft/config.json as the document registry. Use the original human-owned intent, guardrails and feature docs for decisions. Draft researched discovery and PRD requirements; distinguish verified facts from hypotheses. Ask for human approval before locking; when locked, submit a proposal rather than editing human files. Build and test bounded increments, link tests to FR and Flow IDs, maintain agent/progress.md and run leancraft sync. Never fabricate URLs, tests, cost data, interviews or approvals. LeanCraft cannot enforce OS-level sandboxing or security against unrestricted shell access.
+# LeanCraft skill
+
+Read AGENTS.md, .leancraft/config.json and relevant original human product documents first. For discovery cite real users, dates, complaints, research and alternatives; never fabricate evidence. For definition link FR, Flow and Persona, document acceptance and invariants, obtain human decisions. Use leancraft validate, trace, lock, then approve --by a named reviewer and gate build.
+
+Implement small reversible slices with actual tests. Configure quality.commands as executable argv arrays; use leancraft verify and gate release for evidence bound to a reviewed contract and Git revision. Record progress and sync for handoff. While locked, submit proposals instead of editing human files. Review is self-declared and not secure authentication. Unrestricted agents require external sandboxing, branch protection and human reviewers.

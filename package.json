@@ -49,7 +49,7 @@
     "url": "https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"

@@ -1,19 +1,20 @@
-# AGENTS.md | LeanCraft canonical contract
+# AGENTS.md | LeanCraft universal agent contract
 
-Human decisions are the source of truth. An agent proposes and implements bounded code changes with explicit evidence and review.
+LeanCraft is a reviewed, traceable document-first engineering workflow. A user may start with one sentence or an existing repository. Treat placeholders and unexecuted tests as incomplete.
 
-## Startup
-Read .leancraft/config.json, human/definition/intent.md, human/definition/guardrails.md and the relevant feature specs. Read agent/progress.md for durable work history and agent/context.md only as a derived summary. Inspect existing source and tests before editing.
+## Start every task
+1. Inspect code, history, dependencies, tests and current request.
+2. Read .leancraft/config.json, human/definition/intent.md, guardrails.md, relevant feature specs and agent/progress.md.
+3. Investigate user pains, real sources and competitors when relevant. Preserve citations, dates, confidence and contradictory evidence. Never invent interviews or metrics.
+4. Distinguish VERIFIED facts, INFERRED assumptions and UNKNOWN items.
 
-## Process
-1. Discover current state and real user pains, documenting evidence, dates and unknowns. Do not fabricate sources, quotes, prices or user interviews.
-2. Define requirements (FR IDs), workflows, personas, acceptance criteria, invariants, oracles and risks.
-3. Human approves scope and tradeoffs. Run npx leancraft validate before npx leancraft lock.
-4. Build one bounded feature at a time. Refer to relevant requirements and validate with actual tests.
-5. Record decisions, actual commands and exit codes. Distinguish VERIFIED, INFERRED and UNKNOWN. Update agent/progress.md, then npx leancraft sync.
-6. When locked, do not edit .leancraft/human/ directly. Make a proposal in .leancraft/agent/proposals/ and request human review.
+## Reviewed contract
+Humans own .leancraft/human/. After drafting, use leancraft validate, leancraft trace, leancraft lock, then record a distinct self-declared human review using leancraft approve --by "<reviewer>". A self-declared reviewer is not authenticated by the CLI. The leancraft gate build checks source structure, lock, current review and FR/Flow/Persona traces.
 
-## Hard limits
-Document validation checks structure, not real-world accuracy or functional software quality. The config lock, MCP workflow, instructions and git hook are cooperative safeguards, NOT a sandbox, authenticated permission system or protection against an agent with full shell access. Code reviews must be enforced using GitHub rules and least-privilege agent execution.
+When locked, agents must propose changes in .leancraft/agent/proposals/ instead of editing human specifications. Re-locking removes prior review, requiring fresh approval.
 
-Do not claim tests passed without running them. The budget, token, time, network and secrets policy values in config.json are advisory unless separately enforced. Do not re-read every discovery document unnecessarily, but consult original evidence whenever the summary is incomplete or outdated.
+## Build and prove
+Plan bounded work against FR, Flow, Persona and acceptance checks. Test the implementation, not just its documents. Configure quality.commands in config.json as argv arrays. Run leancraft verify and leancraft gate release against a clean tracked Git commit. Store progress in agent/progress.md, and run leancraft sync for derived summaries.
+
+## Safety
+Markdown, advisory locks, hashes and hooks cannot prevent a shell-capable agent from rewriting local files. Enforce actual approvals through protected branches and independently privileged humans. Restrict credentials/network/processes in an external sandbox. No static validator proves factual research quality or 100% software correctness. Report actual test results, untested scenarios and release blockers.

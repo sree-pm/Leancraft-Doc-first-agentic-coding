@@ -9,7 +9,7 @@ const checks = [];
 function record(label, condition, critical = false, detail = "") {
   checks.push({ label, status: condition ? "PASS" : critical ? "FAIL" : "WARN", detail });
 }
-record("Node >=20", Number(process.versions.node.split(".")[0]) >= 20, true);
+record("Node >=22", Number(process.versions.node.split(".")[0]) >= 22, true);
 const configFile = path.join(lc, "config.json");
 let cfg;
 try { cfg = JSON.parse(fs.readFileSync(configFile, "utf8")); record("valid LeanCraft config", true); }
