@@ -9,7 +9,8 @@ if (!fs.existsSync(configPath)) { console.error("LeanCraft not initialised; deny
 const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const target = process.argv[2];
 if (!target) { console.error("Usage: guard-write <file-path>"); process.exit(2); }
-const abs = path.isAbsolute(target) ? path.resolve(target) : path.resolve(root, target.startsWith("human/") ? ".leancraft/" + target : target);
+const managed = /^(human|agent|joint|templates|runtime)\//.test(target.replace(/\\/g, "/"));
+const abs = path.isAbsolute(target) ? path.resolve(target) : path.resolve(root, managed ? ".leancraft/" + target : target);
 const relative = path.relative(lcRoot, abs).split(path.sep).join("/");
 const forbidden = relative === "human" || relative.startsWith("human/");
 if (cfg.locked && forbidden) {
