@@ -1,26 +1,7 @@
-# Leancraft — Doc-First Verified Agency
+# LeanCraft workspace
 
-> `npm run leancraft:validate` must PASS before Lock. `human/**` is READ-ONLY when locked.
+The `config.json` registry is the starting document contract. `human/` holds reviewed product direction, `agent/progress.md` holds durable implementation progress, `agent/context.md` is derived, `agent/proposals/` holds unapplied edits, and `joint/` stores joint records.
 
-## Quick Start (human, first idea)
+`templates/` are intentionally incomplete. `runtime/` contains project-local tools and MCP entrypoint installed with `npx leancraft init`. After updating LeanCraft, `npx leancraft init --force` refreshes managed files without erasing human authored docs.
 
-1. `npm run leancraft:validate` — see what's missing
-2. Fill `human/discovery/*` (or `npx leancraft import notion --url <url>`)
-3. Distill `human/definition/intent.md` from `06-prd.md`
-4. `npm run leancraft:validate` → PASS
-5. `npm run leancraft:lock` — or click [🔒 Lock] in chat
-6. Agent now codes via `agent/proposals/` + auto `agent/status.md`
-
-## Daily
-
-- `npm run leancraft:sync` — regenerates `agent/context.md` + `agent/status.md` (also auto on commit)
-- Agent needs change? It writes `agent/proposals/NNN-*.md` → you `[🔓 Unlock / ❌ Don't]`
-
-## Ownership
-
-- `human/**` — you own, agent READ-ONLY when locked
-- `agent/**` — agent owns, you READ-ONLY
-- `joint/**` — both append
-
-See `.claude/skills/leancraft/SKILL.md` for agent prompt.
-See `config.json` for registry (which docs, which sections, min counts).
+A lock is a cooperative review marker and cannot secure documents from shell-capable agents. External permissions and branch protections enforce actual access boundaries.

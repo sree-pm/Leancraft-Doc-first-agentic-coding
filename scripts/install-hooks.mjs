@@ -1,27 +1,19 @@
 #!/usr/bin/env node
-// Installs git hook that enforces human/** READ-ONLY when locked + runs sync
-import fs from "fs";
-import path from "path";
-
-const hook = `#!/bin/sh
-# leancraft pre-commit hook — enforces ownership + runs validate
-set -e
-LOCKED=$(node -p "JSON.parse(require('fs').readFileSync('.leancraft/config.json','utf8')).locked" 2>/dev/null || echo "false")
-if [ "$LOCKED" = "true" ] && git diff --cached --name-only | grep -q "^.leancraft/human/"; then
-  if [ "$LEANCRAFT_HUMAN" != "1" ]; then
-    echo "✖ BLOCKED: .leancraft/human/** is LOCKED. Agent must write to .leancraft/agent/proposals/ instead."
-    echo "  Human unlock: npx leancraft unlock  (or chat [🔓 Unlock])"
-    exit 1
-  fi
-fi
-# Always run validate as warning (don't block commit, just inform)
-node scripts/leancraft-validate.mjs || echo "⚠ validate failed — fix before Lock"
-`;
-
-const hookPath = path.join(process.cwd(), ".git/hooks/pre-commit");
-try {
-  fs.writeFileSync(hookPath, hook, { mode: 0o755 });
-  console.log("✓ pre-commit hook installed");
-} catch (e) {
-  console.log("Note: could not install hook (no .git/hooks):", e.message);
-}
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+const root = process.cwd();
+let hooksPath;
+try { hooksPath = execFileSync("git", ["rev-parse", "--git-path", "hooks"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); }
+catch { console.error("LeanCraft: git not initialised. Optional hook skipped."); process.exit(0); }
+const dir = path.resolve(root, hooksPath), target = path.join(dir, "pre-commit");
+if (fs.existsSync(target)) { console.error("LeanCraft: existing pre-commit hook preserved; configure validation in your hook manager."); process.exit(0); }
+fs.mkdirSync(dir, { recursive: true });
+fs.writeFileSync(target, [
+ "#!/bin/sh", "# LeanCraft cooperative local guard; branch protections and CI provide review enforcement.",
+ "set -eu", "if [ -f .leancraft/config.json ] && [ -f .leancraft/runtime/leancraft-validate.mjs ]; then",
+ "  LOCKED=$(node -p \"JSON.parse(require('fs').readFileSync('.leancraft/config.json','utf8')).locked\" 2>/dev/null || echo false)",
+ "  if [ \"$LOCKED\" = \"true\" ]; then node .leancraft/runtime/leancraft-validate.mjs; fi",
+ "fi", ""
+].join("\n"), { mode: 0o755 });
+console.log("LeanCraft optional lock-state validation hook installed.");

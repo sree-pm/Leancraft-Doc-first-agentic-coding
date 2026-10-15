@@ -1,122 +1,80 @@
 #!/usr/bin/env node
-// Minimal MCP server for Leancraft — enforces ownership, exposes read_intent, propose_change, get_context
-// Speak MCP JSON-RPC over stdio. Works with Claude Code, Cursor, Opencode.
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 
-import fs from "fs";
-import path from "path";
-import { execSync } from "child_process";
-
-const root = process.cwd();
-const configPath = path.join(root, ".leancraft/config.json");
-
-function readConfig() {
-  try { return JSON.parse(fs.readFileSync(configPath, "utf8")); } catch { return { locked: false, denyAgentWrite: ["human/**"] }; }
-}
-
-const tools = [
-  {
-    name: "leancraft_read_intent",
-    description: "MUST call first. Reads config + intent + guardrails + context. Returns the contract agent must obey.",
-    inputSchema: { type: "object", properties: {} }
-  },
-  {
-    name: "leancraft_get_context",
-    description: "Returns compressed repo memory (agent/context.md, 500 lines). Use to avoid context rot.",
-    inputSchema: { type: "object", properties: {} }
-  },
-  {
-    name: "leancraft_propose_change",
-    description: "When locked and you need to change human/**, write a proposal to agent/proposals/ instead. This is the ONLY way.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        target: { type: "string", description: "human file you want to change, e.g., human/definition/intent.md" },
-        reason: { type: "string" },
-        diff: { type: "string", description: "unified diff" }
-      },
-      required: ["target", "reason", "diff"]
-    }
-  },
-  {
-    name: "leancraft_validate",
-    description: "Runs the registry validator. Call before asking to Lock.",
-    inputSchema: { type: "object", properties: {} }
-  }
+const cwd = process.cwd(), lc = path.join(cwd, ".leancraft");
+const read = p => fs.readFileSync(path.join(lc, p), "utf8");
+const registry = [
+ { name: "leancraft_read_intent", description: "Read the current human-authored contract and guardrails before work.", inputSchema: { type: "object", properties: {} } },
+ { name: "leancraft_get_context", description: "Read derived context, then consult original definition docs.", inputSchema: { type: "object", properties: {} } },
+ { name: "leancraft_propose_change", description: "Create a reviewable proposal only; never modifies protected human files.", inputSchema: { type: "object", properties: {
+   target: { type: "string" }, reason: { type: "string" }, diff: { type: "string" }
+ }, required: ["target", "reason", "diff"] } },
+ { name: "leancraft_validate", description: "Run document contract validation.", inputSchema: { type: "object", properties: {} } },
+ { name: "leancraft_status", description: "Read review state and actual validation status.", inputSchema: { type: "object", properties: {} } }
 ];
-
-function handleTool(name, args) {
-  const cfg = readConfig();
-  if (name === "leancraft_read_intent") {
-    const intent = fs.readFileSync(path.join(root, ".leancraft/human/definition/intent.md"), "utf8").slice(0, 4000);
-    const guardrails = fs.readFileSync(path.join(root, ".leancraft/human/definition/guardrails.md"), "utf8").slice(0, 2000);
-    const context = fs.readFileSync(path.join(root, ".leancraft/agent/context.md"), "utf8").slice(0, 2000);
-    return { locked: cfg.locked, intent, guardrails, context, budget: cfg.budget, docRegistry: cfg.docRegistry };
-  }
-  if (name === "leancraft_get_context") {
-    return fs.readFileSync(path.join(root, ".leancraft/agent/context.md"), "utf8");
-  }
+function tool(name, args = {}) {
+  const cfg = JSON.parse(read("config.json"));
+  if (name === "leancraft_read_intent") return { locked: Boolean(cfg.locked), intent: read("human/definition/intent.md"), guardrails: read("human/definition/guardrails.md"), budgetIsAdvisory: true };
+  if (name === "leancraft_get_context") return { context: read("agent/context.md"), note: "This is a derived summary." };
   if (name === "leancraft_propose_change") {
-    if (!cfg.locked) return { error: "Not locked — you may edit human/** directly. No proposal needed." };
-    // enforce human/** check
-    if (!args.target.startsWith("human/")) return { error: "target must be human/**" };
-    const id = Date.now().toString().slice(-6);
-    const p = path.join(root, `.leancraft/agent/proposals/${id}-${args.target.replace(/\//g, "-")}.md`);
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, `# Proposal: ${args.target}\n\n**Reason:** ${args.reason}\n\n**Diff:**\n\`\`\`diff\n${args.diff}\n\`\`\`\n\n> Human: merge this file to apply, or [❌ Don't].\n`);
-    return { ok: true, proposal: p, message: "Proposal written. Ask human: [🔓 Unlock / ❌ Don't]" };
+    if (![args.target, args.reason, args.diff].every(x => typeof x === "string" && x.trim())) throw new Error("target, reason and diff must be nonempty strings");
+    if (args.diff.length > 100000 || args.reason.length > 2000) throw new Error("Proposal exceeds size limits");
+    const normalized = path.posix.normalize(args.target.replace(/\\/g, "/"));
+    if (!normalized.startsWith("human/") || normalized.includes("../") || normalized === "human/") throw new Error("Target must be a human/ document");
+    const proposalDir = path.join(lc, "agent/proposals");
+    fs.mkdirSync(proposalDir, { recursive: true });
+    const filename = randomUUID() + ".md";
+    const proposal = [
+      "# Change proposal", "", "Target: " + normalized, "Reason: " + args.reason,
+      "Status: PENDING HUMAN REVIEW", "", "## Proposed diff", "", "~~~diff", args.diff, "~~~", ""
+    ].join("\n");
+    fs.writeFileSync(path.join(proposalDir, filename), proposal, { flag: "wx" });
+    return { created: "agent/proposals/" + filename, applied: false, humanReviewRequired: true };
   }
-  if (name === "leancraft_validate") {
+  if (name === "leancraft_validate" || name === "leancraft_status") {
+    let pass = false, output;
     try {
-      const out = execSync("node scripts/leancraft-validate.mjs", { encoding: "utf8" });
-      return { pass: true, output: out };
-    } catch (e) {
-      return { pass: false, output: e.stdout?.toString() || e.message };
-    }
+      output = execFileSync(process.execPath, [fileURLToPath(new URL("./leancraft-validate.mjs", import.meta.url))], { cwd, encoding: "utf8", timeout: 30000 });
+      pass = true;
+    } catch (e) { output = e.stdout?.toString() || e.message; }
+    return { locked: Boolean(cfg.locked), validationPass: pass, output };
   }
-  return { error: "unknown tool" };
+  throw new Error("Unknown tool " + name);
 }
-
-// Minimal JSON-RPC loop
-let buf = "";
-process.stdin.on("data", chunk => {
-  buf += chunk.toString();
-  let idx;
-  while ((idx = buf.indexOf("\n")) !== -1) {
-    const line = buf.slice(0, idx).trim();
-    buf = buf.slice(idx + 1);
-    if (!line) continue;
+function send(id, result, error) {
+  if (id === undefined) return;
+  process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, ...(error ? { error } : { result }) }) + "\n");
+}
+function handle(message) {
+  if (!message || message.jsonrpc !== "2.0") return send(message?.id, null, { code: -32600, message: "Invalid JSON-RPC request" });
+  if (message.method === "notifications/initialized") return;
+  if (message.method === "initialize") return send(message.id, { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "leancraft", version: "0.2.0" } });
+  if (message.method === "ping") return send(message.id, {});
+  if (message.method === "tools/list") return send(message.id, { tools: registry });
+  if (message.method === "tools/call") {
     try {
-      const msg = JSON.parse(line);
-      if (msg.method === "initialize") {
-        respond(msg.id, { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "leancraft", version: "1.0.0" } });
-      } else if (msg.method === "tools/list") {
-        respond(msg.id, { tools });
-      } else if (msg.method === "tools/call") {
-        const result = handleTool(msg.params.name, msg.params.arguments || {});
-        // handle async validate
-        if (result && typeof result.then === "function") {
-          result.then(r => respond(msg.id, { content: [{ type: "text", text: JSON.stringify(r, null, 2) }] }));
-        } else {
-          respond(msg.id, { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] });
-        }
-      } else if (msg.method === "notifications/initialized") {
-        // no-op
-      } else {
-        respond(msg.id, { error: { code: -32601, message: "Method not found: " + msg.method } });
-      }
+      const result = tool(message.params?.name, message.params?.arguments || {});
+      return send(message.id, { content: [{ type: "text", text: JSON.stringify(result) }], isError: false });
     } catch (e) {
-      // ignore parse errors
+      return send(message.id, { content: [{ type: "text", text: "LeanCraft tool error: " + e.message }], isError: true });
     }
+  }
+  return send(message.id, null, { code: -32601, message: "Method not found" });
+}
+let buffer = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", chunk => {
+  buffer += chunk;
+  if (buffer.length > 2000000) { console.error("Oversized MCP input"); process.exit(1); }
+  let index;
+  while ((index = buffer.indexOf("\n")) >= 0) {
+    const line = buffer.slice(0, index).trim(); buffer = buffer.slice(index + 1);
+    if (!line) continue;
+    try { handle(JSON.parse(line)); }
+    catch { send(null, null, { code: -32700, message: "Parse error" }); }
   }
 });
-
-function respond(id, result) {
-  if (id == null) return;
-  process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
-}
-
-// also support simple test mode
-if (process.argv.includes("--test")) {
-  console.log(JSON.stringify(handleTool("leancraft_read_intent", {}), null, 2));
-  process.exit(0);
-}

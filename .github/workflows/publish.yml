@@ -1,71 +1,41 @@
 name: release
-
 on:
   push:
     tags: ["v*"]
 
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
+  contents: read
 
 jobs:
-  publish:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - run: npm publish --provenance --access public
+          node-version: 24
+      - run: npm run verify
+      - name: Confirm matching release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node -e "const v=require('./package.json').version;if(process.env.RELEASE_TAG !== 'v'+v)process.exit(1)"
 
-  release:
-    needs: publish
+  publish:
+    needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-      - name: Generate release notes from commits
-        id: notes
-        run: |
-          PREV=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
-          if [ -n "$PREV" ]; then
-            RANGE="$PREV..${{ github.ref_name }}"
-            NOTES=$(git log $RANGE --pretty=format:"- %s (%h)")
-          else
-            NOTES=$(git log --pretty=format:"- %s (%h)" -n 20)
-          fi
-          {
-            echo "## What's Changed"
-            echo ""
-            if [ -z "$NOTES" ]; then
-              echo "- Initial release"
-            else
-              echo "$NOTES"
-            fi
-            echo ""
-            echo "## Install"
-            echo '```bash'
-            echo "npx leancraft@${{ github.ref_name }}"
-            echo '```'
-            echo ""
-            echo "## Full Changelog"
-            if [ -n "$PREV" ]; then
-              echo "https://github.com/${{ github.repository }}/compare/$PREV...${{ github.ref_name }}"
-            else
-              echo "https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}"
-            fi
-          } > release-notes.md
-          cat release-notes.md
-      - name: Create GitHub Release
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@latest
+      - name: Publish with npm trusted publishing (OIDC)
+        run: npm publish --access public
+      - name: Create GitHub release only after npm publish succeeds
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ github.ref_name }}
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          generate_release_notes: false
-          body_path: release-notes.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true

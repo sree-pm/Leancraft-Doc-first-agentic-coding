@@ -1,36 +1,9 @@
-# Contributing to Leancraft
+# Contributing
 
-Thanks for building doc-first!
+Clone https://github.com/sree-pm/Leancraft-Doc-first-agentic-coding.git, create a focused branch and run `npm run verify` before sending a pull request.
 
-## Quick Start
+Use the tests in `test/` to reproduce bugs in a newly initialised project, not only in this repository. Test Windows/Unix path assumptions, MCP JSON-RPC, clean installs, locks, approvals, upgrades, document checks and package contents when relevant.
 
-```bash
-git clone https://github.com/sree-pm/leancraft.git
-cd leancraft
-npm install
-npm run leancraft:validate
-npm run leancraft:sync
-```
+PR descriptions should report what changed, why, what commands were executed, what passed/failed, what remains untested and whether a human contract was affected. A document marked APPROVED is not the same as verified code.
 
-## How to Contribute
-
-1. Fork + branch: `feat/xyz` or `fix/xyz`
-2. Follow `AGENTS.md` — read `.leancraft/config.json` before editing human docs
-3. If you change docs, run `npm run leancraft:validate` — must PASS before PR
-4. Keep `agent/context.md` under 500 lines (auto via `sync`)
-5. Open PR — `CODEOWNERS` will request review for `human/**`
-
-## Doc Changes
-
-- `human/**` is human-owned. Agent PRs must go via `agent/proposals/NNN-*.md` with `Source, Why, Diff`.
-- Do not add docs outside `config.json.docRegistry`. Add to registry first.
-- One doc per feature: `human/definition/features/NNN-kebab-case.md`.
-
-## Code Style
-
-- Node >=18, ESM, no build step for CLI
-- Scripts in `scripts/*.mjs` — keep them <200 lines
-
-## Questions
-
-Open an issue: https://github.com/sree-pm/leancraft/issues
+CODEOWNERS requests only become mandatory when repository branch rules require them. Never weaken a human-owned contract silently.

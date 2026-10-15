@@ -2,9 +2,7 @@
   "mcpServers": {
     "leancraft": {
       "command": "node",
-      "args": ["./scripts/mcp-server.mjs"],
-      "env": {},
-      "description": "Leancraft doc-first guardrails — enforces human READ-ONLY, registry, budget, proposals"
+      "args": ["./.leancraft/runtime/mcp-server.mjs"]
     }
   }
 }
