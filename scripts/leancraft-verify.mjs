@@ -40,7 +40,12 @@ for (const args of commands) {
   }
   console.log("RUN " + JSON.stringify(args));
   const started = Date.now();
-  const run = spawnSync(binary, realArgs, { cwd, shell: false, encoding: "utf8", timeout: maxMs, maxBuffer: 1024 * 1024 });
+  // node:test sets NODE_TEST_CONTEXT in its worker process. If inherited, a nested
+  // 'node --test' invocation can silently SKIP tests with exit code 0.
+  // Strip only that internal runner marker; preserve normal project environment.
+  const childEnv = { ...process.env };
+  delete childEnv.NODE_TEST_CONTEXT;
+  const run = spawnSync(binary, realArgs, { cwd, env: childEnv, shell: false, encoding: "utf8", timeout: maxMs, maxBuffer: 1024 * 1024 });
   const status = run.status === null ? 1 : run.status;
   const entry = {
     argv: args, exitCode: status, durationMs: Date.now() - started,

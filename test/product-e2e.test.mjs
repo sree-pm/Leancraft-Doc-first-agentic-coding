@@ -65,7 +65,8 @@ test("real toy application is blocked when broken and allowed only after actual 
   assert.equal(git(dir,["config","user.name","LeanCraft E2E"]).status,0);
   assert.equal(git(dir,["add","-A"]).status,0);
   assert.equal(git(dir,["commit","-qm","Reviewed contract and buggy app"]).status,0);
-  const direct=spawnSync(process.execPath, ["--test","tests/discount.test.mjs"],{cwd:dir,encoding:"utf8",timeout:30000});
+  const detachedTestEnv = { ...process.env }; delete detachedTestEnv.NODE_TEST_CONTEXT;
+  const direct=spawnSync(process.execPath, ["--test","tests/discount.test.mjs"],{cwd:dir,env:detachedTestEnv,encoding:"utf8",timeout:30000});
   assert.notEqual(direct.status,0,"Broken app unexpectedly passed standalone Node tests: "+direct.stdout+" "+direct.stderr);
   const first=exec(dir,["verify"]);
   const evidenceFirst=fs.existsSync(path.join(lc,"joint/verification.json"))?
