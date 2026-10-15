@@ -19,8 +19,29 @@ jobs:
         node: [22, 24]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: npm run verify
+
+  package-smoke:
+    name: Install packed npm tarball in fresh project
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Pack and install locally without registry dependency
+        run: |
+          npm pack --pack-destination "$RUNNER_TEMP"
+          mkdir -p "$RUNNER_TEMP/new-app"
+          cd "$RUNNER_TEMP/new-app"
+          npm install "$RUNNER_TEMP"/leancraft-*.tgz --no-audit --no-fund
+          ./node_modules/.bin/leancraft init
+          ./node_modules/.bin/leancraft templates
+          test -f .leancraft/runtime/mcp-server.mjs
+          test -f .opencode/skills/leancraft/SKILL.md
+          test ! -e .github/CODEOWNERS

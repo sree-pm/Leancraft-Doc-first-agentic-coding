@@ -110,3 +110,20 @@ test("MCP handshake, tool discovery and non-applying proposal", t => {
   assert.equal(messages[2].result.isError, false);
   assert.equal(fs.readdirSync(path.join(dir, ".leancraft/agent/proposals")).filter(f => f.endsWith(".md")).length >= 2, true);
 });
+
+
+test("invalid pain evidence and duplicate requirements fail document validation", t => {
+  const dir = tmp(); t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.equal(execute(dir, ["init"]).status, 0);
+  makeValid(dir);
+  assert.equal(execute(dir, ["validate"]).status, 0);
+  const research = path.join(dir, ".leancraft/human/discovery/02-research.md");
+  const original = fs.readFileSync(research, "utf8");
+  fs.writeFileSync(research, original.replace("https://example.org/pain/3", "https://..."));
+  assert.notEqual(execute(dir, ["validate"]).status, 0, "bogus source link should not pass");
+  fs.writeFileSync(research, original);
+  const prd = path.join(dir, ".leancraft/human/discovery/06-prd.md");
+  const body = fs.readFileSync(prd, "utf8");
+  fs.writeFileSync(prd, body.replace("FR-02", "FR-01"));
+  assert.notEqual(execute(dir, ["validate"]).status, 0, "duplicated requirement IDs should not satisfy minimum");
+});
