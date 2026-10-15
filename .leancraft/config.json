@@ -370,5 +370,6 @@
     "attestation": "self-declared",
     "requireLockedReview": true,
     "externalHumanApprovalRequired": true
-  }
+  },
+  "profile": "assured"
 }

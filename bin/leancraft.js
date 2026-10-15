@@ -28,6 +28,7 @@ function help() {
     "  npx leancraft features         Draft documents for PRD flows (when unlocked)\n" +
     "  npx leancraft approve --by <human>  Record a self-declared review after lock\n" +
     "  npx leancraft revoke --by <human> --reason <text>\n" +
+    "  npx leancraft profile lean|standard|assured --by <reviewer> --reason <why>\n" +
     "  npx leancraft verify           Execute configured quality commands and record evidence\n" +
     "  npx leancraft gate build|release  Check readiness and freshness\n" +
     "  npx leancraft trace            Report FR, Flow and Persona traceability\n" +
@@ -44,6 +45,7 @@ else if (command === "features") run("leancraft-features.mjs");
 else if (command === "doctor") run("leancraft-doctor.mjs");
 else if (command === "approve" || command === "revoke") run("leancraft-review.mjs", [command, ...args.slice(1)]);
 else if (command === "verify") run("leancraft-verify.mjs", []);
+else if (command === "profile") run("leancraft-profile.mjs");
 else if (command === "gate") run("leancraft-gate.mjs");
 else if (command === "trace") run("leancraft-trace.mjs", []);
 else if (command === "budget") run("leancraft-budget.mjs");
