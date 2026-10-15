@@ -11,3 +11,6 @@ coverage/
 # Leancraft runtime (keep committed, but ignore temp)
 .leancraft/agent/*.tmp
 .leancraft/agent/context.md.tmp
+
+# Generated local evidence, not source-controlled approval
+.leancraft/joint/verification.json
