@@ -1,31 +1,20 @@
 #!/usr/bin/env node
-// guard-write — write-time enforcement for human/** when locked
-// Usage: node scripts/guard-write.mjs <target-path>
-// Exit 0 = allowed, 1 = blocked (agent must use proposals/)
+import fs from "node:fs";
+import path from "node:path";
 
-import fs from "fs";
-import path from "path";
-
+const root = process.cwd();
+const lcRoot = path.resolve(root, ".leancraft");
+const configPath = path.join(lcRoot, "config.json");
+if (!fs.existsSync(configPath)) { console.error("LeanCraft not initialised; denying write."); process.exit(1); }
+const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const target = process.argv[2];
-if (!target) {
-  console.error("Usage: node scripts/guard-write.mjs <target-path>");
+if (!target) { console.error("Usage: guard-write <file-path>"); process.exit(2); }
+const abs = path.isAbsolute(target) ? path.resolve(target) : path.resolve(root, target.startsWith("human/") ? ".leancraft/" + target : target);
+const relative = path.relative(lcRoot, abs).split(path.sep).join("/");
+const forbidden = relative === "human" || relative.startsWith("human/");
+if (cfg.locked && forbidden) {
+  console.error("BLOCKED: human documents are locked. Create a proposal under .leancraft/agent/proposals/.");
   process.exit(1);
 }
-
-const configPath = path.join(process.cwd(), ".leancraft/config.json");
-let cfg = { locked: false };
-try { cfg = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch {}
-
-const normalized = target.replace(/\\/g, "/").replace(/^\.leancraft\//, "");
-
-if (cfg.locked && normalized.startsWith("human/")) {
-  const proposal = `agent/proposals/${Date.now().toString().slice(-6)}-${normalized.replace(/\//g, "-")}.md`;
-  console.error(`✖ BLOCKED: ${target} is in locked human/**.`);
-  console.error(`  Agent must write to ${proposal} instead.`);
-  console.error(`  Ask human: [🔓 Unlock / ❌ Don't]`);
-  console.error(`  Hook is backup; this guard is primary.`);
-  process.exit(1);
-}
-
-console.log(`✓ Write allowed: ${target}`);
-process.exit(0);
+if (relative.startsWith("../") || relative === "..") { console.error("Path outside LeanCraft tree."); process.exit(1); }
+console.log("ALLOWED: " + relative);
